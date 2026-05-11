@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
 import API from "../api/api";
 import PaymentButton from "../components/PaymentButton";
-import ServiceDetails from "./serviceDetails";
+import ServiceDetails from "./ServiceDetails";
 
 const JobDetails = () => {
   const { jobId } = useParams();
