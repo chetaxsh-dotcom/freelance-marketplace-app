@@ -1,4 +1,4 @@
-import Job from "../models/job.js"; 
+import Job from "../models/Job.js"; 
 import mongoose from "mongoose";
 import Notification from "../models/Notification.js";
 
