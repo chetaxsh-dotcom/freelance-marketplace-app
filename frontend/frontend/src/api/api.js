@@ -1,7 +1,7 @@
 import axios from "axios";
 
 const API = axios.create({
-  baseURL: "https://freelance-marketplace-app.onrender.com"
+  baseURL: "https://freelance-marketplace-app.onrender.com/api"
 });
 
 //  AUTO TOKEN
