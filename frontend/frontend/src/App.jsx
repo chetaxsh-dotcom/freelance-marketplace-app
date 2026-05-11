@@ -14,7 +14,7 @@ import PaymentHistory from "./pages/PaymentHistory";
 import Dashboard from "./pages/Dashboard";
 import Notifications from "./pages/Notifications";
 import Hire from "./pages/Hire";
-import ForgotPassword from "./pages/forgotPassword";
+import ForgotPassword from "./pages/ForgotPassword";
 
 
 function App() {
