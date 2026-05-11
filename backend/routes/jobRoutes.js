@@ -1,18 +1,15 @@
-const express = require("express");
+import express from "express";
+import { createJob, getJobs, getJobById, addRating, addResponse, } from "../controllers/jobController.js";
+import authMiddleware from "../middleware/authMiddleware.js";
 
 const router = express.Router();
 
-const {
-createJob,
-getJobs,
-getJobById
-} = require("../controllers/jobController");
-
-
 router.post("/", createJob);
-
 router.get("/", getJobs);
+router.get("/:jobId", getJobById);
 
-router.get("/:id", getJobById);
+// protected route
+router.post("/:jobId/rate",authMiddleware, addRating);
+router.post("/:jobId/respond/:ratingId", addResponse);
 
-module.exports = router;
+export default router;

@@ -1,37 +1,72 @@
-import { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
+import { useEffect, useState } from "react";
 import API from "../api/api";
 
-function ServiceDetails() {
+const ServiceDetails = () => {
+  const { id } = useParams();
+  const [service, setService] = useState(null);
 
-const { id } = useParams();
-const [service, setService] = useState(null);
+  useEffect(() => {
+  if (!id) return;
 
-useEffect(() => {
-fetchService();
-}, []);
+  console.log("Fetching ID:", id);
+  fetchService();
+}, [id]);
 
 const fetchService = async () => {
-const res = await API.get(`/services/${id}`);
-setService(res.data);
+  try {
+    const res = await API.get(`/services/${id}`);
+    setService(res.data);
+  } catch (err) {
+    console.error(err);
+    alert("Service not found ❌");
+  }
 };
 
-if (!service) return <p>Loading...</p>;
+  if (!service) return <p>Loading...</p>;
 
-return (
+  return (
+    <div style={{ padding: "20px" }}>
+      <h1>{service.title}</h1>
+      <p>{service.description}</p>
+      <p>💰 ₹{service.price}</p>
 
-<div style={{ padding: "40px" }}>
+      <p>
+  <strong>🛠 Skills:</strong>
+  {service.skills?.join(", ")}
+</p>
 
-<h1>{service.title}</h1>
+      <p>
+        ⭐ {service.averageRating }
+      </p>
 
-<p>{service.description}</p>
+      <br></br>
 
-<h3>Price: ₹{service.price}</h3>
+    <h3 style={{ marginTop: "20px" }}>Reviews</h3>
 
-</div>
+{service.ratings?.length === 0 ? (
+  <p>No reviews yet</p>
+) : (
+  service.ratings.map((r, index) => (
+    <div
+      key={index}
+      style={{
+        border: "1px solid #ddd",
+        padding: "10px",
+        borderRadius: "8px",
+        marginTop: "10px",
+        background: "#f9f9f9"
+      }}
+    >
+      <p>⭐ {r.value}</p>
+      <p>{r.review}</p>
+    </div>
+  ))
+)}
 
-);
-
-}
+    </div>
+    
+  );
+};
 
 export default ServiceDetails;
