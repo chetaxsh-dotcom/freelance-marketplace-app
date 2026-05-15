@@ -8,6 +8,7 @@ function Navbar() {
 
   const [count, setCount] = useState(0);
 
+
   // FETCH NOTIFICATIONS
   const fetchNotifications = async () => {
     try {
@@ -81,6 +82,22 @@ function Navbar() {
         <NavButton label="Jobs" path="/jobs" />
         <NavButton label="Transactions" path="/payments" />
         <NavButton label="Dashboard" path="/dashboard" />
+              
+              <a 
+              href="/create-service" 
+              style={{
+                padding: '10px 20px',
+                color: "#fff",
+                borderRadius: '5px',
+                textDecoration: 'none',
+                fontWeight: 'bold',
+                
+              }}
+              >
+      
+        ➕ Service
+      </a>
+
 
         {/* NOTIFICATION */}
         <button

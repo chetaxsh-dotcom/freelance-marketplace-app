@@ -1,151 +1,183 @@
-import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import API from '../api/api';
+import { useState } from "react";
+import API from "../api/api";
+import { useNavigate } from "react-router-dom";
 
 const Signup = () => {
-  const [formData, setFormData] = useState({
-    name: '',
-    email: '',
-    password: '',
-    role: 'freelancer'
-  });
+  const [name, setName] = useState("");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [role, setRole] = useState("freelancer");
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
+  const [hover, setHover] = useState(false);
 
-  const handleChange = (e) => {
-    setFormData({
-      ...formData,
-      [e.target.name]: e.target.value
-    });
-  };
-
-  const handleSubmit = async (e) => {
+  const handleSignup = async (e) => {
     e.preventDefault();
     setLoading(true);
 
     try {
-      const res = await API.post('/auth/register', formData);
+      console.log('📝 Signup attempt with:', { name, email, role });
 
-      if (res.data.success) {
-        localStorage.setItem('user', JSON.stringify(res.data.user));
-        localStorage.setItem('token', res.data.token);
-        alert('✅ Signup successful!');
-        navigate('/');
-      }
-    } catch (error) {
-      alert('❌ Signup failed: ' + (error.response?.data?.message || error.message));
+      const res = await API.post("/auth/register", {
+        name,
+        email,
+        password,
+        role
+      });
+
+      console.log('✅ Signup response:', res.data);
+
+      // ✅ SAVE TO LOCALSTORAGE
+      localStorage.setItem("token", res.data.token);
+      localStorage.setItem("userId", res.data.user._id);
+      localStorage.setItem("role", res.data.user.role);
+      localStorage.setItem("user", JSON.stringify(res.data.user));
+
+      console.log('📦 Saved to localStorage:', {
+        token: localStorage.getItem("token"),
+        userId: localStorage.getItem("userId"),
+        role: localStorage.getItem("role"),
+        user: localStorage.getItem("user")
+      });
+
+      alert("Signup Successful ✅");
+      navigate("/");
+
+    } catch (err) {
+      console.error('❌ Signup Error:', err.response?.data || err);
+      alert("Signup Failed ❌: " + (err.response?.data?.message || err.message));
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div style={{ maxWidth: '400px', margin: '50px auto', padding: '20px' }}>
-      <h1>📝 Create Account</h1>
+    <div style={styles.container}>
+      <div style={styles.overlay}></div>
 
-      <form onSubmit={handleSubmit}>
-        {/* Name */}
-        <input
-          type="text"
-          name="name"
-          placeholder="Full Name"
-          value={formData.name}
-          onChange={handleChange}
-          required
-          style={{
-            width: '100%',
-            padding: '12px',
-            marginBottom: '15px',
-            border: '1px solid #ddd',
-            borderRadius: '5px',
-            fontSize: '14px'
-          }}
-        />
+      <div style={styles.card}>
+        <h1 style={styles.title}>Create Account</h1>
 
-        {/* Email */}
-        <input
-          type="email"
-          name="email"
-          placeholder="Email"
-          value={formData.email}
-          onChange={handleChange}
-          required
-          style={{
-            width: '100%',
-            padding: '12px',
-            marginBottom: '15px',
-            border: '1px solid #ddd',
-            borderRadius: '5px',
-            fontSize: '14px'
-          }}
-        />
+        <form onSubmit={handleSignup} style={styles.form}>
+          <input
+            type="text"
+            placeholder="Full Name"
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            required
+            style={styles.input}
+          />
 
-        {/* Password */}
-        <input
-          type="password"
-          name="password"
-          placeholder="Password"
-          value={formData.password}
-          onChange={handleChange}
-          required
-          style={{
-            width: '100%',
-            padding: '12px',
-            marginBottom: '15px',
-            border: '1px solid #ddd',
-            borderRadius: '5px',
-            fontSize: '14px'
-          }}
-        />
+          <input
+            type="email"
+            placeholder="Email"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            required
+            style={styles.input}
+          />
 
-        {/* Role */}
-        <select
-          name="role"
-          value={formData.role}
-          onChange={handleChange}
-          style={{
-            width: '100%',
-            padding: '12px',
-            marginBottom: '15px',
-            border: '1px solid #ddd',
-            borderRadius: '5px',
-            fontSize: '14px'
-          }}
-        >
-          <option value="freelancer">👨‍💼 Freelancer</option>
-          <option value="client">👤 Client</option>
-        </select>
+          <input
+            type="password"
+            placeholder="Password"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            required
+            style={styles.input}
+          />
 
-        {/* Submit Button */}
-        <button
-          type="submit"
-          disabled={loading}
-          style={{
-            width: '100%',
-            padding: '12px',
-            backgroundColor: '#28a745',
-            color: 'white',
-            border: 'none',
-            borderRadius: '5px',
-            fontSize: '16px',
-            fontWeight: 'bold',
-            cursor: loading ? 'not-allowed' : 'pointer',
-            opacity: loading ? 0.6 : 1
-          }}
-        >
-          {loading ? '⏳ Creating Account...' : '✅ Create Account'}
-        </button>
-      </form>
+          <select
+            value={role}
+            onChange={(e) => setRole(e.target.value)}
+            style={styles.input}
+          >
+            <option value="freelancer">👨‍💼 Freelancer</option>
+            <option value="client">👤 Client</option>
+          </select>
 
-      {/* Login Link */}
-      <p style={{ textAlign: 'center', marginTop: '15px' }}>
-        Already have an account?{' '}
-        <a href="/login" style={{ color: '#007bff', cursor: 'pointer' }}>
-          Login here
-        </a>
-      </p>
+          <button
+            onMouseEnter={() => setHover(true)}
+            onMouseLeave={() => setHover(false)}
+            type="submit"
+            disabled={loading}
+            style={{
+              backgroundColor: loading ? "#999999" : (hover ? "#11a51dcf" : "#3da51196"),
+              color: "white",
+              padding: "8px 15px",
+              borderRadius: "5px",
+              border: "none",
+              cursor: loading ? "not-allowed" : "pointer",
+              transition: "0.3s",
+              boxShadow: hover ? "0 4px 12px rgba(0,0,0,0.3)" : "none",
+              fontWeight: "bold"
+            }}
+          >
+            {loading ? "Creating..." : "Sign Up"}
+          </button>
+        </form>
+
+        <p style={{ textAlign: "center", marginTop: "15px", fontSize: "14px" }}>
+          Already have an account?{" "}
+          <a href="/login" style={{ color: "#3da51196", cursor: "pointer" }}>
+            Login
+          </a>
+        </p>
+      </div>
     </div>
   );
 };
 
 export default Signup;
+
+const styles = {
+  container: {
+    height: "100vh",
+    display: "flex",
+    justifyContent: "center",
+    alignItems: "center",
+    backgroundImage:
+      "url('https://plus.unsplash.com/premium_photo-1723773736797-8d05f469c6df?w=600&auto=format&fit=crop&q=60&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxzZWFyY2h8MjR8fGNvbGxhYm9yYXRpb258ZW58MHx8MHx8fDA%3D')",
+    backgroundSize: "cover",
+    backgroundPosition: "center",
+    position: "relative",
+  },
+
+  overlay: {
+    position: "absolute",
+    width: "100%",
+    height: "100%",
+    backgroundColor: "rgba(0,0,0,0.6)",
+  },
+
+  card: {
+    position: "relative",
+    zIndex: 2,
+    width: "350px",
+    padding: "40px",
+    backgroundColor: "rgba(0,0,0,0.75)",
+    borderRadius: "10px",
+    color: "white",
+    display: "flex",
+    flexDirection: "column",
+    boxShadow: "0 8px 32px rgba(0,0,0,0.7)",
+  },
+
+  title: {
+    marginBottom: "20px",
+    textAlign: "center",
+  },
+
+  form: {
+    display: "flex",
+    flexDirection: "column",
+    gap: "15px",
+  },
+
+  input: {
+    padding: "12px",
+    borderRadius: "5px",
+    border: "none",
+    outline: "none",
+    fontSize: "14px",
+  },
+};

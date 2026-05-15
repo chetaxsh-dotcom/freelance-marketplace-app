@@ -5,25 +5,43 @@ import { useNavigate } from "react-router-dom";
 const Login = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
   const [hover, setHover] = useState(false);
 
-
   const handleLogin = async (e) => {
     e.preventDefault();
+    setLoading(true);
 
     try {
+      console.log('🔐 Login attempt with:', email);
+      
       const res = await API.post("/auth/login", { email, password });
 
+      console.log('✅ Login response:', res.data);
+
+      // ✅ SAVE TO LOCALSTORAGE
       localStorage.setItem("token", res.data.token);
       localStorage.setItem("userId", res.data.user._id);
+      localStorage.setItem("role", res.data.user.role);
+      localStorage.setItem("user", JSON.stringify(res.data.user));
+
+      // ✅ VERIFY SAVED
+      console.log('📦 Saved to localStorage:', {
+        token: localStorage.getItem("token"),
+        userId: localStorage.getItem("userId"),
+        role: localStorage.getItem("role"),
+        user: localStorage.getItem("user")
+      });
 
       alert("Login Successful ✅");
-      navigate("/"); // redirect to home
+      navigate("/");
 
     } catch (err) {
-      console.error(err);
-      alert("Login Failed ❌");
+      console.error('❌ Login Error:', err.response?.data || err);
+      alert("Login Failed ❌: " + (err.response?.data?.message || err.message));
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -40,6 +58,7 @@ const Login = () => {
             placeholder="Email"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
+            required
             style={styles.input}
           />
 
@@ -48,27 +67,37 @@ const Login = () => {
             placeholder="Password"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
+            required
             style={styles.input}
           />
 
           <button 
-          onMouseEnter={() => setHover(true)}
-          onMouseLeave={() => setHover(false)}
-          type="submit" 
-          style={{
-            backgroundColor: hover ? "#11a51dcf" : "#3da51196",
-            color: "white",
-            padding: "8px 15px",
-            borderRadius: "5px",
-            border: "none",
-            cursor: "pointer",
-            transition: "0.3s",
-            boxShadow: hover ? "0 4px 12px rgba(0,0,0,0.3)" : "none"            
-          }
-          }>
-            Login
+            onMouseEnter={() => setHover(true)}
+            onMouseLeave={() => setHover(false)}
+            type="submit"
+            disabled={loading}
+            style={{
+              backgroundColor: loading ? "#999999" : (hover ? "#11a51dcf" : "#3da51196"),
+              color: "white",
+              padding: "8px 15px",
+              borderRadius: "5px",
+              border: "none",
+              cursor: loading ? "not-allowed" : "pointer",
+              transition: "0.3s",
+              boxShadow: hover ? "0 4px 12px rgba(0,0,0,0.3)" : "none",
+              fontWeight: "bold"
+            }}
+          >
+            {loading ? "Logging in..." : "Login"}
           </button>
         </form>
+
+        <p style={{ textAlign: "center", marginTop: "15px", fontSize: "14px" }}>
+          Don't have an account?{" "}
+          <a href="/signup" style={{ color: "#3da51196", cursor: "pointer" }}>
+            Sign up
+          </a>
+        </p>
       </div>
     </div>
   );
@@ -106,8 +135,7 @@ const styles = {
     color: "white",
     display: "flex",
     flexDirection: "column",
-    boxShadow:
-      "0 8px 32px rgba(0,0,0,0.7)",
+    boxShadow: "0 8px 32px rgba(0,0,0,0.7)",
   },
 
   title: {
@@ -127,16 +155,5 @@ const styles = {
     border: "none",
     outline: "none",
     fontSize: "14px",
-  },
-
-  button: {
-    padding: "12px",
-    backgroundColor: "#e50914",
-    color: "white",
-    border: "none",
-    borderRadius: "5px",
-    fontWeight: "bold",
-    cursor: "pointer",
-    hover:""
   },
 };

@@ -11,6 +11,7 @@ import paymentRoutes from './routes/paymentRoutes.js';
 import milestoneRoutes from './routes/milestoneRoutes.js';
 import notificationRoutes from "./routes/notificationRoutes.js";
 import contractRoutes from "./routes/contractRoutes.js";
+import cleanupRoutes from './routes/cleanupRoutes.js';
 
 
 
@@ -32,6 +33,8 @@ app.use("/api/payments", paymentRoutes);
 app.use("/api/milestones",milestoneRoutes);
 app.use("/api/notifications", notificationRoutes);
 app.use("/api/contracts", contractRoutes);
+app.use("/api/cleanup", cleanupRoutes);
+
 
 app.get("/", (req, res) => {
   res.send("API Running");

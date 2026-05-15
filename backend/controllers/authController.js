@@ -1,225 +1,210 @@
 import User from '../models/User.js';
-import bcryptjs from 'bcryptjs';
+import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
-import Notification from "../models/Notification.js";
 
+console.log(' Auth Controller Loaded');
 
 // REGISTER USER
+
 export const registerUser = async (req, res) => {
   try {
-
-    console.log("📩 Register request body:", req.body);
-
     const { name, email, password, role } = req.body;
 
-    // VALIDATION
-    if (!name || !email || !password) {
-      return res.status(400).json({
-        message: "Name, email and password are required"
-      });
-    }
-
-    // CHECK EXISTING USER
     const existingUser = await User.findOne({ email });
-
     if (existingUser) {
       return res.status(400).json({
-        message: "User already exists"
+        success: false,
+        message: 'Email already registered'
       });
     }
 
-    // HASH PASSWORD
-    const hashedPassword = await bcryptjs.hash(password, 10);
+    const hashedPassword = await bcrypt.hash(password, 10);
 
-    // CREATE USER
-    const newUser = await User.create({
+    const user = new User({
       name,
       email,
       password: hashedPassword,
-      role: role || "client"
+      role: role || 'freelancer'
     });
 
-    // CREATE NOTIFICATION
-    await Notification.create({
-      message: `🎉 New user registered: ${newUser.name}`
-    });
+    await user.save();
+    console.log('✅ User registered:', user._id);
 
-    // GENERATE TOKEN
     const token = jwt.sign(
-      {
-        id: newUser._id,
-        role: newUser.role
-      },
-      process.env.JWT_SECRET || "secret",
-      {
-        expiresIn: "7d"
-      }
+      { id: user._id, email: user.email },
+      process.env.JWT_SECRET || 'your_secret_key_here',
+      { expiresIn: '7d' }
     );
 
-    // RESPONSE
     res.status(201).json({
       success: true,
-      message: "User registered successfully",
-      token,
+      message: 'User registered successfully',
       user: {
-        id: newUser._id,
-        name: newUser.name,
-        email: newUser.email,
-        role: newUser.role
-      }
+        _id: user._id.toString(),
+        name: user.name,
+        email: user.email,
+        role: user.role
+      },
+      token
     });
 
   } catch (error) {
-
-    console.error("❌ Register error:", error);
-
+    console.error('❌ Register Error:', error.message);
     res.status(500).json({
+      success: false,
       message: error.message
     });
   }
 };
-
 
 // LOGIN USER
 export const loginUser = async (req, res) => {
   try {
-
-    console.log("📩 Login request body:", req.body);
-
     const { email, password } = req.body;
 
+    console.log('🔐 Login attempt:', email);
+
+    // VALIDATION
+    if (!email || !password) {
+      return res.status(400).json({
+        success: false,
+        message: 'Email and password are required'
+      });
+    }
+
+    // FIND USER
     const user = await User.findOne({ email });
-
     if (!user) {
-      return res.status(404).json({
-        message: 'User not found'
-      });
-    }
-
-    const isPasswordValid = await bcryptjs.compare(
-      password,
-      user.password
-    );
-
-    if (!isPasswordValid) {
+      console.error('❌ User not found:', email);
       return res.status(401).json({
-        message: 'Invalid password'
+        success: false,
+        message: 'Invalid email or password'
       });
     }
 
+    // VERIFY PASSWORD
+    const isPasswordValid = await bcrypt.compare(password, user.password);
+    if (!isPasswordValid) {
+      console.error('❌ Invalid password for:', email);
+      return res.status(401).json({
+        success: false,
+        message: 'Invalid email or password'
+      });
+    }
+
+    console.log('✅ User logged in:', user._id);
+
+    // GENERATE TOKEN
     const token = jwt.sign(
-      {
-        id: user._id,
-        role: user.role
-      },
-      process.env.JWT_SECRET || 'secret',
-      {
-        expiresIn: '7d'
-      }
+      { id: user._id, email: user.email },
+      process.env.JWT_SECRET || 'your_secret_key_here',
+      { expiresIn: '7d' }
     );
 
+    // RETURN USER WITH _id
     res.json({
       success: true,
       message: 'Login successful',
-      token,
       user: {
-        id: user._id,
+        _id: user._id.toString(),  // ← IMPORTANT: Convert to string
         name: user.name,
         email: user.email,
         role: user.role
-      }
+      },
+      token
     });
 
   } catch (error) {
-
-    console.error("❌ Login error:", error);
-
+    console.error('❌ Login Error:', error.message);
     res.status(500).json({
+      success: false,
       message: error.message
     });
   }
 };
 
-// change Password
-
+// CHANGE PASSWORD
 export const changePassword = async (req, res) => {
-
   try {
+    const { userId, oldPassword, newPassword } = req.body;
 
-    const { oldPassword, newPassword } = req.body;
-
-    const userId = req.body.userId;
+    if (!userId || !oldPassword || !newPassword) {
+      return res.status(400).json({
+        success: false,
+        message: 'userId, oldPassword, and newPassword are required'
+      });
+    }
 
     const user = await User.findById(userId);
-
     if (!user) {
       return res.status(404).json({
-        message: "User not found"
+        success: false,
+        message: 'User not found'
       });
     }
 
-    const isMatch = await bcryptjs.compare(
-      oldPassword,
-      user.password
-    );
-
-    if (!isMatch) {
-      return res.status(400).json({
-        message: "Old password incorrect"
+    const isPasswordValid = await bcrypt.compare(oldPassword, user.password);
+    if (!isPasswordValid) {
+      return res.status(401).json({
+        success: false,
+        message: 'Old password is incorrect'
       });
     }
 
-    const hashedPassword =
-      await bcryptjs.hash(newPassword, 10);
-
-    user.password = hashedPassword;
-
+    user.password = await bcrypt.hash(newPassword, 10);
     await user.save();
+
+    console.log('✅ Password changed:', userId);
 
     res.json({
       success: true,
-      message: "Password updated"
+      message: 'Password changed successfully'
     });
 
-  } catch (err) {
-
+  } catch (error) {
+    console.error('❌ Change Password Error:', error.message);
     res.status(500).json({
-      message: err.message
+      success: false,
+      message: error.message
     });
   }
 };
 
+// FORGOT PASSWORD (SIMPLIFIED)
 export const forgotPassword = async (req, res) => {
-
   try {
-
     const { email, newPassword } = req.body;
 
-    const user = await User.findOne({ email });
-
-    if (!user) {
-
-      return res.status(404).json({
-        message: "User not found"
+    if (!email || !newPassword) {
+      return res.status(400).json({
+        success: false,
+        message: 'Email and newPassword are required'
       });
     }
 
-    const hashedPassword =
-      await bcryptjs.hash(newPassword, 10);
+    const user = await User.findOne({ email });
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: 'User not found'
+      });
+    }
 
-    user.password = hashedPassword;
-
+    user.password = await bcrypt.hash(newPassword, 10);
     await user.save();
+
+    console.log('✅ Password reset:', email);
 
     res.json({
       success: true,
-      message: "Password reset successful"
+      message: 'Password reset successfully'
     });
 
-  } catch (err) {
-
+  } catch (error) {
+    console.error('❌ Forgot Password Error:', error.message);
     res.status(500).json({
-      message: err.message
+      success: false,
+      message: error.message
     });
   }
 };

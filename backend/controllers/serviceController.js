@@ -2,7 +2,10 @@ import Service from '../models/Service.js';
 
 export const createService = async (req, res) => {
   try {
-    const { title, description, price, skills, location, image } = req.body;
+    const { title, description, price, skills, location, image, userId } = req.body;
+    const user = JSON.parse(localStorage.getItem('user'));
+    const userId = user?._id || user?.id;
+
 
     const newService = new Service({
       title,
@@ -11,6 +14,7 @@ export const createService = async (req, res) => {
       skills,
       location,
       image,
+      userId
     });
 
     await newService.save();

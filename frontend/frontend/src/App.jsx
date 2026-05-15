@@ -15,6 +15,8 @@ import Dashboard from "./pages/Dashboard";
 import Notifications from "./pages/Notifications";
 import Hire from "./pages/Hire";
 import ForgotPassword from "./pages/ForgotPassword";
+import CreateServiceForm from './components/CreateServiceForm';
+
 
 
 function App() {
@@ -32,6 +34,8 @@ function App() {
 
         {/* SERVICES FIX */}
         <Route path="/services/:id" element={<ServiceDetails />} />
+        <Route path="/create-service" element={<CreateServiceForm />} />
+
 
         {/* AUTH */}
         <Route path="/login" element={<Login />} />
