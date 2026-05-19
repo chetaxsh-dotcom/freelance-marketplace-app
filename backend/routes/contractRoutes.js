@@ -1,78 +1,31 @@
-import express from "express";
-import Contract from "../models/Contract.js";
+import express from 'express';
+import {
+  createContract,
+  getUserContracts,
+  getContractById,
+  updateContractStatus,
+  addMessage,
+  deleteContract
+} from '../controllers/contractController.js';
 
 const router = express.Router();
 
-
 // CREATE CONTRACT
-router.post("/", async (req, res) => {
+router.post('/', createContract);
 
-  try {
+// GET USER CONTRACTS
+router.get('/user/:userId', getUserContracts);
 
-    const contract = await Contract.create(req.body);
-
-    res.json({
-      success: true,
-      contract
-    });
-
-  } catch (err) {
-
-    res.status(500).json({
-      message: err.message
-    });
-  }
-});
-
-
-// GET CONTRACTS
-router.get("/", async (req, res) => {
-
-  try {
-
-    const contracts = await Contract.find()
-      .sort({ createdAt: -1 });
-
-    res.json(contracts);
-
-  } catch (err) {
-
-    res.status(500).json({
-      message: err.message
-    });
-  }
-});
+// GET SINGLE CONTRACT
+router.get('/:id', getContractById);
 
 // UPDATE CONTRACT STATUS
+router.patch('/:id/status', updateContractStatus);
 
-router.patch("/:id", async (req, res) => {
+// ADD MESSAGE
+router.post('/:id/messages', addMessage);
 
-  try {
-
-    const contract =
-      await Contract.findByIdAndUpdate(
-
-        req.params.id,
-
-        {
-          status: req.body.status
-        },
-
-        { new: true }
-
-      );
-
-    res.json({
-      success: true,
-      contract
-    });
-
-  } catch (err) {
-
-    res.status(500).json({
-      message: err.message
-    });
-  }
-});
+// DELETE CONTRACT
+router.delete('/:id', deleteContract);
 
 export default router;

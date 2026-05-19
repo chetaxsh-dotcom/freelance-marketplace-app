@@ -1,6 +1,6 @@
 import axios from "axios";
 
-// ✅ SMART: Use localhost in development, render in production
+//  SMART: Use localhost in development, render in production
 const isDevelopment = import.meta.env.MODE === 'development';
 
 const baseURL = isDevelopment 

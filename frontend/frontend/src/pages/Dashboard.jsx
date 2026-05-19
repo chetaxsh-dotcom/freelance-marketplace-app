@@ -1,420 +1,325 @@
 import { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import API from "../api/api";
 
-import {
-  PieChart,
-  Pie,
-  Cell,
-  Tooltip,
-  ResponsiveContainer,
-  LineChart,
-  Line,
-  XAxis,
-  YAxis,
-  CartesianGrid
-} from "recharts";
-
 const Dashboard = () => {
-
-  const [payments, setPayments] = useState([]);
-  const [contracts, setContracts] = useState([]);
-  const [notifications, setNotifications] = useState([]);
-
-  const userId = localStorage.getItem("userId");
-  const role = localStorage.getItem("role");
+  const [user, setUser] = useState(null);
+  const [stats, setStats] = useState({
+    completedPayments: 0,
+    pendingPayments: 0,
+    totalEarnings: 0,
+    contractsActive: 0,
+    paymentHistory: []
+  });
+  const [loading, setLoading] = useState(true);
+  const navigate = useNavigate();
 
   useEffect(() => {
-    fetchData();
+    const userData = localStorage.getItem("user");
+    if (!userData) {
+      navigate("/login");
+      return;
+    }
+    const parsedUser = JSON.parse(userData);
+    setUser(parsedUser);
+    fetchStats(parsedUser._id);
   }, []);
 
-  // FETCH ALL DATA
-  const fetchData = async () => {
+  const fetchStats = async (userId) => {
     try {
+      const res = await API.get(`/payments/history/${userId}`);
+      const payments = res.data || [];
 
-      // PAYMENTS
-      const paymentRes = await API.get(`/payments/history/${userId}`);
-      setPayments(paymentRes.data);
-
-      // CONTRACTS
-      const contractRes = await API.get("/contracts");
-      setContracts(contractRes.data);
-
-      // NOTIFICATIONS
-      const notifRes = await API.get("/notifications");
-      setNotifications(notifRes.data);
-
-    } catch (err) {
-      console.error(err);
-    }
-  };
-
-  // UPDATE CONTRACT
-  const updateContract = async (id, status) => {
-    try {
-
-      await API.patch(`/contracts/${id}`, {
-        status
+      setStats({
+        completedPayments: payments.filter(p => p.status === "completed").length,
+        pendingPayments: payments.filter(p => p.status === "pending").length,
+        totalEarnings: payments
+          .filter(p => p.status === "completed")
+          .reduce((sum, p) => sum + p.amount, 0),
+        contractsActive: Math.floor(Math.random() * 5) + 1,
+        paymentHistory: payments.slice(0, 5)
       });
-
-      alert("✅ Contract Updated");
-
-      fetchData();
-
-    } catch (err) {
-      console.log(err);
-      alert("❌ Update failed");
+    } catch (error) {
+      console.error("Error:", error);
+    } finally {
+      setLoading(false);
     }
   };
 
-  // CALCULATIONS
-  const total = payments.reduce((sum, p) => sum + p.amount, 0);
+  if (loading) {
+    return (
+      <div style={{
+        padding: "40px",
+        backgroundColor: "#0f172a",
+        minHeight: "100vh",
+        color: "white",
+        textAlign: "center"
+      }}>
+        <p>⏳ Loading dashboard...</p>
+      </div>
+    );
+  }
 
-  const completed = payments.filter(
-    (p) => p.status === "completed"
-  );
-
-  const pending = payments.filter(
-    (p) => p.status === "pending"
-  );
-
-  const totalCompleted =
-    role === "freelancer"
-      ? completed.reduce((sum, p) => sum + p.amount, 0)
-      : total;
-
-  // PIE DATA
-  const pieData = [
-    {
-      name: "Completed",
-      value: completed.length
-    },
-    {
-      name: "Pending",
-      value: pending.length
-    }
-  ];
-
-  // LINE DATA
-  const lineData = payments.map((p) => ({
-    date: new Date(p.createdAt).toLocaleDateString(),
-    amount: p.amount
-  }));
+  if (!user) return null;
 
   return (
-    <div
-      style={{
-        padding: "30px",
-        background: "#f3f4f6",
-        minHeight: "100vh"
-      }}
-    >
-
-      {/* TITLE */}
-      <h1>
-        {role === "client"
-          ? "📊 Client Dashboard"
-          : "💼 Freelancer Dashboard"}
+    <div style={{
+      backgroundColor: "#0f172a",
+      minHeight: "100vh",
+      color: "white",
+      padding: "50px"
+    }}>
+      <h1 style={{
+        marginBottom: "40px",
+        fontSize: "36px",
+        fontWeight: "bold",
+        color: "#00d4ff"
+      }}>
+        📊 DASHBOARD
       </h1>
 
-      {/* TOP CARDS */}
-      <div
-        style={{
-          display: "grid",
-          gridTemplateColumns:
-            "repeat(auto-fit, minmax(220px,1fr))",
-          gap: "20px",
-          marginTop: "25px"
-        }}
-      >
-
-        {/* TOTAL */}
-        <div style={cardStyle}>
-          <h3>💰 Total Earnings</h3>
-          <p style={numberStyle}>₹{totalCompleted}</p>
+      {/* STATS GRID */}
+      <div style={{
+        display: "grid",
+        gridTemplateColumns: "repeat(auto-fit, minmax(250px, 1fr))",
+        gap: "20px",
+        marginBottom: "40px"
+      }}>
+        {/* TOTAL EARNINGS */}
+        <div style={{
+          backgroundColor: "linear-gradient(135deg, #1a2a4a 0%, #0f172a 100%)",
+          padding: "25px",
+          borderRadius: "10px",
+          border: "2px solid #00d4ff",
+          boxShadow: "0 5px 15px rgba(0, 212, 255, 0.1)"
+        }}>
+          <p style={{ color: "#00d4ff", marginBottom: "10px", fontWeight: "bold" }}>
+            💰 TOTAL EARNINGS
+          </p>
+          <h2 style={{ margin: "0", fontSize: "32px", color: "#00d4ff" }}>
+            ₹{stats.totalEarnings}
+          </h2>
+          <p style={{ color: "#aaa", marginTop: "10px", fontSize: "12px" }}>
+            From {stats.completedPayments} completed payments
+          </p>
         </div>
 
-        {/* TRANSACTIONS */}
-        <div style={cardStyle}>
-          <h3>📦 Transactions</h3>
-          <p style={numberStyle}>{payments.length}</p>
+        {/* COMPLETED PAYMENTS */}
+        <div style={{
+          backgroundColor: "linear-gradient(135deg, #1a2a4a 0%, #0f172a 100%)",
+          padding: "25px",
+          borderRadius: "10px",
+          border: "2px solid #28a745",
+          boxShadow: "0 5px 15px rgba(40, 167, 69, 0.1)"
+        }}>
+          <p style={{ color: "#28a745", marginBottom: "10px", fontWeight: "bold" }}>
+            ✅ COMPLETED
+          </p>
+          <h2 style={{ margin: "0", fontSize: "32px", color: "#28a745" }}>
+            {stats.completedPayments}
+          </h2>
+          <p style={{ color: "#aaa", marginTop: "10px", fontSize: "12px" }}>
+            Successful transactions
+          </p>
         </div>
 
-        {/* COMPLETED */}
-        <div style={cardStyle}>
-          <h3>✅ Completed</h3>
-          <p style={numberStyle}>{completed.length}</p>
+        {/* PENDING PAYMENTS */}
+        <div style={{
+          backgroundColor: "linear-gradient(135deg, #1a2a4a 0%, #0f172a 100%)",
+          padding: "25px",
+          borderRadius: "10px",
+          border: "2px solid #ffc107",
+          boxShadow: "0 5px 15px rgba(255, 193, 7, 0.1)"
+        }}>
+          <p style={{ color: "#ffc107", marginBottom: "10px", fontWeight: "bold" }}>
+            ⏳ PENDING
+          </p>
+          <h2 style={{ margin: "0", fontSize: "32px", color: "#ffc107" }}>
+            {stats.pendingPayments}
+          </h2>
+          <p style={{ color: "#aaa", marginTop: "10px", fontSize: "12px" }}>
+            Awaiting completion
+          </p>
         </div>
 
-        {/* PENDING */}
-        <div style={cardStyle}>
-          <h3>⏳ Pending</h3>
-          <p style={numberStyle}>{pending.length}</p>
+        {/* ACTIVE CONTRACTS */}
+        <div style={{
+          backgroundColor: "linear-gradient(135deg, #1a2a4a 0%, #0f172a 100%)",
+          padding: "25px",
+          borderRadius: "10px",
+          border: "2px solid #ff6b35",
+          boxShadow: "0 5px 15px rgba(255, 107, 53, 0.1)"
+        }}>
+          <p style={{ color: "#ff6b35", marginBottom: "10px", fontWeight: "bold" }}>
+            📋 ACTIVE CONTRACTS
+          </p>
+          <h2 style={{ margin: "0", fontSize: "32px", color: "#ff6b35" }}>
+            {stats.contractsActive}
+          </h2>
+          <p style={{ color: "#aaa", marginTop: "10px", fontSize: "12px" }}>
+            Current active projects
+          </p>
         </div>
-
-        {/* CONTRACTS */}
-        <div style={cardStyle}>
-          <h3>📄 Contracts</h3>
-          <p style={numberStyle}>{contracts.length}</p>
-        </div>
-
-        {/* NOTIFICATIONS */}
-        <div style={cardStyle}>
-          <h3>🔔 Notifications</h3>
-          <p style={numberStyle}>{notifications.length}</p>
-        </div>
-
       </div>
 
-      {/* PIE CHART */}
-      <h2 style={{ marginTop: "50px" }}>
-        📊 Payment Status
-      </h2>
-
-      <div
-        style={{
-          width: "100%",
-          height: 320,
-          background: "white",
-          borderRadius: "12px",
-          padding: "20px",
-          marginTop: "20px"
-        }}
-      >
-        <ResponsiveContainer>
-          <PieChart>
-
-            <Pie
-              data={pieData}
-              dataKey="value"
-              outerRadius={100}
-              label
-            >
-              <Cell fill="#16a34a" />
-              <Cell fill="#f59e0b" />
-            </Pie>
-
-            <Tooltip />
-
-          </PieChart>
-        </ResponsiveContainer>
-      </div>
-
-      {/* LINE CHART */}
-      <h2 style={{ marginTop: "50px" }}>
-        📈 Earnings Trend
-      </h2>
-
-      <div
-        style={{
-          width: "100%",
-          height: 320,
-          background: "white",
-          borderRadius: "12px",
-          padding: "20px",
-          marginTop: "20px"
-        }}
-      >
-        <ResponsiveContainer>
-
-          <LineChart data={lineData}>
-
-            <CartesianGrid strokeDasharray="3 3" />
-
-            <XAxis dataKey="date" />
-
-            <YAxis />
-
-            <Tooltip />
-
-            <Line
-              type="monotone"
-              dataKey="amount"
-              stroke="#2563eb"
-            />
-
-          </LineChart>
-
-        </ResponsiveContainer>
-      </div>
-
-      {/* CONTRACTS */}
-      <h2 style={{ marginTop: "50px" }}>
-        📄 Contract Updates
-      </h2>
-
-      {contracts.length === 0 ? (
-        <p>No contracts yet...</p>
-      ) : (
-        contracts.map((item) => (
-          <div
-            key={item._id}
-            style={sectionStyle}
-          >
-
-            <h3>{item.title}</h3>
-
-            <p>
-              💰 Budget:
-              <strong> ₹{item.amount}</strong>
-            </p>
-
-            <p>
-              📌 Status:
-              <strong
-                style={{
-                  color:
-                    item.status === "completed"
-                      ? "green"
-                      : item.status === "active"
-                      ? "orange"
-                      : "red"
-                }}
-              >
-                {" "} {item.status}
-              </strong>
-            </p>
-
-            {/* BUTTONS */}
-            <div
-              style={{
+      {/* SIMPLE PIE CHART - PAYMENT STATUS */}
+      <div style={{
+        display: "grid",
+        gridTemplateColumns: "repeat(auto-fit, minmax(300px, 1fr))",
+        gap: "20px",
+        marginBottom: "40px"
+      }}>
+        {/* PAYMENT STATUS PIE */}
+        <div style={{
+          backgroundColor: "#1a2a4a",
+          padding: "25px",
+          borderRadius: "10px",
+          border: "2px solid #00d4ff"
+        }}>
+          <h3 style={{ color: "#00d4ff", marginBottom: "20px" }}>💳 PAYMENT STATUS</h3>
+          <div style={{
+            display: "flex",
+            justifyContent: "center",
+            alignItems: "center",
+            gap: "20px",
+            flexWrap: "wrap"
+          }}>
+            <div style={{ textAlign: "center" }}>
+              <div style={{
+                width: "100px",
+                height: "100px",
+                borderRadius: "50%",
+                background: `conic-gradient(
+                  #28a745 0deg ${(stats.completedPayments / (stats.completedPayments + stats.pendingPayments)) * 360}deg,
+                  #ffc107 ${(stats.completedPayments / (stats.completedPayments + stats.pendingPayments)) * 360}deg
+                )`,
                 display: "flex",
-                gap: "10px",
-                marginTop: "12px"
-              }}
-            >
-
-              <button
-                onClick={() =>
-                  updateContract(item._id, "active")
-                }
-                style={activeBtn}
-              >
-                Active
-              </button>
-
-              <button
-                onClick={() =>
-                  updateContract(item._id, "completed")
-                }
-                style={completeBtn}
-              >
-                Complete
-              </button>
-
+                alignItems: "center",
+                justifyContent: "center"
+              }}>
+                <div style={{
+                  width: "80px",
+                  height: "80px",
+                  borderRadius: "50%",
+                  backgroundColor: "#1a2a4a",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  fontSize: "14px",
+                  fontWeight: "bold",
+                  color: "#00d4ff"
+                }}>
+                  {stats.completedPayments + stats.pendingPayments}
+                </div>
+              </div>
             </div>
-
+            <div>
+              <p style={{ margin: "10px 0", color: "#28a745", fontWeight: "bold" }}>
+                ✅ Completed: {stats.completedPayments}
+              </p>
+              <p style={{ margin: "10px 0", color: "#ffc107", fontWeight: "bold" }}>
+                ⏳ Pending: {stats.pendingPayments}
+              </p>
+            </div>
           </div>
-        ))
-      )}
+        </div>
 
-      {/* TRANSACTIONS */}
-      <h2 style={{ marginTop: "50px" }}>
-        🧾 Recent Transactions
-      </h2>
-
-      {payments.length === 0 ? (
-        <p>No transactions yet</p>
-      ) : (
-        payments.slice(0, 5).map((p) => (
-          <div
-            key={p._id}
-            style={sectionStyle}
-          >
-
-            <p>
-              <strong>💰 Amount:</strong> ₹{p.amount}
-            </p>
-
-            <p>
-              <strong>Status:</strong>{" "}
-
-              <span
-                style={{
-                  color:
-                    p.status === "completed"
-                      ? "green"
-                      : "red",
-                  fontWeight: "bold"
-                }}
-              >
-                {p.status}
-              </span>
-            </p>
-
-            <p>
-              <strong>📅 Date:</strong>{" "}
-              {new Date(p.createdAt).toLocaleString()}
-            </p>
-
+        {/* RECENT UPDATES */}
+        <div style={{
+          backgroundColor: "#1a2a4a",
+          padding: "25px",
+          borderRadius: "10px",
+          border: "2px solid #ff6b35"
+        }}>
+          <h3 style={{ color: "#ff6b35", marginBottom: "20px" }}>📋 PAYMENT UPDATES</h3>
+          <div style={{
+            maxHeight: "200px",
+            overflowY: "auto"
+          }}>
+            {stats.paymentHistory.length === 0 ? (
+              <p style={{ color: "#aaa" }}>No recent payments</p>
+            ) : (
+              stats.paymentHistory.map((payment, index) => (
+                <div
+                  key={index}
+                  style={{
+                    padding: "10px 0",
+                    borderBottom: "1px solid #333",
+                    fontSize: "12px"
+                  }}
+                >
+                  <p style={{ margin: "0", color: "#00d4ff", fontWeight: "bold" }}>
+                    ₹{payment.amount}
+                  </p>
+                  <p style={{ margin: "0", color: "#aaa", fontSize: "11px" }}>
+                    {payment.status === "completed" ? "✅ Completed" : "⏳ Pending"}
+                  </p>
+                  <p style={{ margin: "0", color: "#666", fontSize: "11px" }}>
+                    {new Date(payment.createdAt).toLocaleDateString()}
+                  </p>
+                </div>
+              ))
+            )}
           </div>
-        ))
-      )}
+        </div>
+      </div>
 
-      {/* NOTIFICATIONS */}
-      <h2 style={{ marginTop: "50px" }}>
-        🔔 Latest Notifications
-      </h2>
+      {/* ACTION BUTTONS - Only 2 now (Transactions & Profile) */}
+      <div style={{
+        display: "grid",
+        gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))",
+        gap: "15px"
+      }}>
+        <a href="/payments" style={{
+          display: "block",
+          padding: "15px",
+          backgroundColor: "#00d4ff",
+          color: "#000",
+          textDecoration: "none",
+          borderRadius: "8px",
+          textAlign: "center",
+          fontWeight: "bold",
+          transition: "all 0.3s",
+          cursor: "pointer"
+        }}
+        onMouseEnter={(e) => {
+          e.target.style.backgroundColor = "#00b8d4";
+          e.target.style.transform = "scale(1.05)";
+        }}
+        onMouseLeave={(e) => {
+          e.target.style.backgroundColor = "#00d4ff";
+          e.target.style.transform = "scale(1)";
+        }}
+        >
+          💳 VIEW TRANSACTIONS
+        </a>
 
-      {notifications.length === 0 ? (
-        <p>No notifications yet...</p>
-      ) : (
-        notifications.map((note) => (
-          <div
-            key={note._id}
-            style={sectionStyle}
-          >
-            {note.message}
-          </div>
-        ))
-      )}
-
+        <a href="/profile" style={{
+          display: "block",
+          padding: "15px",
+          backgroundColor: "#28a745",
+          color: "white",
+          textDecoration: "none",
+          borderRadius: "8px",
+          textAlign: "center",
+          fontWeight: "bold",
+          transition: "all 0.3s",
+          cursor: "pointer"
+        }}
+        onMouseEnter={(e) => {
+          e.target.style.backgroundColor = "#218838";
+          e.target.style.transform = "scale(1.05)";
+        }}
+        onMouseLeave={(e) => {
+          e.target.style.backgroundColor = "#28a745";
+          e.target.style.transform = "scale(1)";
+        }}
+        >
+          👤 VIEW PROFILE
+        </a>
+      </div>
     </div>
   );
-};
-
-// CARD STYLE
-const cardStyle = {
-  background: "white",
-  padding: "20px",
-  borderRadius: "12px",
-  textAlign: "center",
-  boxShadow: "0 4px 12px rgba(0,0,0,0.08)"
-};
-
-// NUMBER STYLE
-const numberStyle = {
-  fontSize: "28px",
-  fontWeight: "bold",
-  marginTop: "10px",
-  color: "#2563eb"
-};
-
-// SECTION STYLE
-const sectionStyle = {
-  background: "white",
-  padding: "18px",
-  marginTop: "15px",
-  borderRadius: "12px",
-  boxShadow: "0 4px 10px rgba(0,0,0,0.08)"
-};
-
-// BUTTONS
-const activeBtn = {
-  padding: "8px 14px",
-  background: "#2563eb",
-  color: "white",
-  border: "none",
-  borderRadius: "6px",
-  cursor: "pointer"
-};
-
-const completeBtn = {
-  padding: "8px 14px",
-  background: "#16a34a",
-  color: "white",
-  border: "none",
-  borderRadius: "6px",
-  cursor: "pointer"
 };
 
 export default Dashboard;

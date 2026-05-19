@@ -8,45 +8,33 @@ const PaymentButton = ({ amount, jobId, freelancerId, serviceName }) => {
     try {
       setLoading(true);
 
-      // ✅ DEBUG: Check localStorage
-      console.log('🔍 Checking localStorage...');
+      console.log('🔍 Checking user...');
       const userStr = localStorage.getItem('user');
-      console.log('📦 Raw user string:', userStr);
 
       if (!userStr) {
-        console.error('❌ NO USER IN LOCALSTORAGE');
         alert('❌ Please login first');
         window.location.href = '/login';
         return;
       }
 
       const user = JSON.parse(userStr);
-      console.log('👤 Parsed user object:', user);
+      const clientId = user._id;
 
-      // Try multiple ways to get ID
-      const clientId = user._id || user.id || localStorage.getItem('userId');
-      console.log('🆔 ClientId found:', clientId);
+      console.log('📊 Payment Details:', {
+        clientId,
+        freelancerId,
+        amount,
+        jobId
+      });
 
+      // VALIDATIONS
       if (!clientId) {
-        console.error('❌ NO CLIENTID FOUND');
-        alert('❌ User ID not found. Please login again');
-        localStorage.removeItem('user');
-        localStorage.removeItem('token');
-        window.location.href = '/login';
+        alert('❌ User ID missing. Please login again');
         return;
       }
 
-      console.log('📝 PAYMENT DATA:', { amount, jobId, freelancerId, clientId });
-
-      // ✅ VALIDATION
-      if (!clientId) {
-        alert('❌ Please login first');
-        return;
-      }
-
-      if (!freelancerId || freelancerId === 'unknown') {
-        console.error('❌ FREELANCERID MISSING:', freelancerId);
-        alert('❌ Freelancer ID missing. Service may not be properly posted');
+      if (!freelancerId) {
+        alert('❌ Freelancer ID missing');
         return;
       }
 
@@ -55,37 +43,43 @@ const PaymentButton = ({ amount, jobId, freelancerId, serviceName }) => {
         return;
       }
 
-      if (!amount || amount <= 0) {
-        alert('❌ Invalid amount');
-        return;
-      }
-
       // CREATE ORDER
-      console.log('🚀 Calling create-order API...');
+      console.log('🚀 Creating order...');
+
       const { data } = await API.post('/payments/create-order', {
-        amount,
+        amount: parseInt(amount),
         jobId,
         freelancerId,
         clientId,
-        description: `Payment for ${serviceName || 'Service'}`
+        description: `Payment for ${serviceName}`
       });
 
-      console.log('✅ ORDER CREATED:', data.order.id);
+      console.log('✅ Order response:', data);
+
+      if (!data.success) {
+        alert('❌ ' + data.message);
+        return;
+      }
 
       const { order, keyId } = data;
+
+      if (!window.Razorpay) {
+        alert('❌ Razorpay not loaded');
+        return;
+      }
 
       // RAZORPAY OPTIONS
       const options = {
         key: keyId,
         amount: order.amount,
         currency: order.currency,
-        name: 'Freelance Marketplace',
-        description: `Payment for ${serviceName || 'Service'}`,
+        name: 'FreelanceHub',
+        description: serviceName,
         order_id: order.id,
 
-        handler: async function (response) {
+        handler: async (response) => {
           try {
-            console.log('💳 PAYMENT RESPONSE:', response);
+            console.log('💳 Payment response:', response);
 
             const verifyRes = await API.post('/payments/verify', {
               razorpayOrderId: response.razorpay_order_id,
@@ -93,50 +87,45 @@ const PaymentButton = ({ amount, jobId, freelancerId, serviceName }) => {
               razorpaySignature: response.razorpay_signature
             });
 
+            console.log('✅ Verify response:', verifyRes.data);
+
             if (verifyRes.data.success) {
-              console.log('✅ PAYMENT VERIFIED');
-              alert('✅ Payment Successful!');
-              
+              alert('✅ PAYMENT SUCCESSFUL!\n₹' + amount + ' received');
               setTimeout(() => {
                 window.location.href = '/payments';
-              }, 1000);
+              }, 1500);
+            } else {
+              alert('❌ ' + verifyRes.data.message);
             }
 
           } catch (err) {
-            console.error('❌ VERIFY ERROR:', err.response?.data || err);
-            alert('❌ Payment verification failed: ' + (err.response?.data?.message || err.message));
+            console.error('❌ Verify error:', err);
+            alert('❌ Payment verification failed');
           }
         },
 
         modal: {
-          ondismiss: function() {
-            console.log('❌ User cancelled payment');
-            alert('❌ Payment cancelled');
+          ondismiss: () => {
+            console.log('User cancelled payment');
+            alert('Payment cancelled');
           }
         },
 
         prefill: {
-          name: user?.name || 'User',
-          email: user?.email || 'user@email.com'
+          name: user?.name,
+          email: user?.email
         },
 
-        theme: {
-          color: '#28a745'
-        }
+        theme: { color: '#00d4ff' }
       };
 
-      if (!window.Razorpay) {
-        alert('❌ Razorpay not loaded');
-        return;
-      }
-
-      console.log('🎉 Opening Razorpay modal');
+      console.log('🎯 Opening Razorpay...');
       const rzp = new window.Razorpay(options);
       rzp.open();
 
     } catch (err) {
-      console.error('❌ PAYMENT ERROR:', err.response?.data || err);
-      alert(err.response?.data?.message || '❌ Payment failed');
+      console.error('❌ Error:', err);
+      alert('❌ ' + (err.response?.data?.message || err.message));
     } finally {
       setLoading(false);
     }
@@ -148,19 +137,18 @@ const PaymentButton = ({ amount, jobId, freelancerId, serviceName }) => {
       disabled={loading}
       style={{
         padding: '12px 20px',
-        background: loading ? '#cccccc' : '#28a745',
-        color: 'white',
+        background: loading ? '#ccc' : 'linear-gradient(135deg, #00d4ff 0%, #0099cc 100%)',
+        color: loading ? '#999' : 'white',
         border: 'none',
         borderRadius: '5px',
         cursor: loading ? 'not-allowed' : 'pointer',
         width: '100%',
         fontWeight: 'bold',
-        fontSize: '16px',
-        opacity: loading ? 0.6 : 1,
-        transition: 'all 0.3s'
+        fontSize: '14px',
+        textTransform: 'uppercase'
       }}
     >
-      {loading ? '⏳ Processing...' : `💳 Pay ₹${amount}`}
+      {loading ? '⏳ PROCESSING...' : `💳 PAY ₹${amount}`}
     </button>
   );
 };

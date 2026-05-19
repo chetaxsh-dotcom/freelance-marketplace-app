@@ -1,295 +1,109 @@
 import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import API from "../api/api";
 
 const Profile = () => {
-
   const [user, setUser] = useState(null);
-
-  // PASSWORD
-  const [oldPassword, setOldPassword] = useState("");
-  const [newPassword, setNewPassword] = useState("");
-
-  // PROFILE
-  const [bio, setBio] = useState("");
-  const [skills, setSkills] = useState("");
-  const [portfolio, setPortfolio] = useState("");
+  const [stats, setStats] = useState({
+    servicesCreated: 0,
+    paymentsMade: 0,
+    totalSpent: 0
+  });
+  const navigate = useNavigate();
 
   useEffect(() => {
-
-    const userData = JSON.parse(localStorage.getItem("user"));
-
-    setUser(userData);
-
-    // OLD DATA LOAD
-    if (userData) {
-      setBio(userData.bio || "");
-      setSkills(userData.skills?.join(", ") || "");
-      setPortfolio(userData.portfolio?.join(", ") || "");
+    const userData = localStorage.getItem("user");
+    if (!userData) {
+      navigate("/login");
+      return;
     }
-
+    const parsedUser = JSON.parse(userData);
+    setUser(parsedUser);
+    fetchStats(parsedUser._id);
   }, []);
 
-  // UPDATE PASSWORD
-  const handlePasswordUpdate = async () => {
-
+  const fetchStats = async (userId) => {
     try {
-
-      await API.patch("/auth/change-password", {
-        userId: user._id,
-        oldPassword,
-        newPassword
+      const res = await API.get(`/payments/history/${userId}`);
+      setStats({
+        paymentsMade: res.data.filter(p => p.status === "completed").length,
+        totalSpent: res.data.reduce((sum, p) => sum + (p.status === "completed" ? p.amount : 0), 0)
       });
-
-      alert("✅ Password Updated");
-
-      setOldPassword("");
-      setNewPassword("");
-
-    } catch (err) {
-
-      console.log(err.response?.data || err);
-
-      alert(err.response?.data?.message || "Failed");
+    } catch (error) {
+      console.error("Error fetching stats:", error);
     }
   };
 
-  // UPDATE PROFILE
-  const handleProfileUpdate = async () => {
-
-    try {
-
-      const updatedData = {
-        bio,
-        skills: skills.split(","),
-        portfolio: portfolio.split(",")
-      };
-
-      const res = await API.patch(
-        `/users/${user._id}`,
-        updatedData
-      );
-
-      localStorage.setItem(
-        "user",
-        JSON.stringify({
-          ...user,
-          ...updatedData
-        })
-      );
-
-      alert("✅ Profile Updated");
-
-    } catch (err) {
-
-      console.log(err);
-
-      alert("❌ Failed to update profile");
-    }
-  };
-
-  // LOGOUT
-  const handleLogout = () => {
-
-    localStorage.removeItem("user");
-    localStorage.removeItem("token");
-    localStorage.removeItem("userId");
-    localStorage.removeItem("role");
-
-    window.location.href = "/";
-  };
-
-  if (!user) {
-    return (
-      <p style={{ padding: "20px" }}>
-        Please login first
-      </p>
-    );
-  }
+  if (!user) return <p>Loading...</p>;
 
   return (
+    <div style={{ padding: "20px", backgroundColor: "#f5f5f5", minHeight: "100vh" }}>
+      <div style={{ maxWidth: "600px", margin: "0 auto" }}>
+        <h1>👤 My Profile</h1>
 
-    <div
-      style={{
-        maxWidth: "700px",
-        margin: "30px auto",
-        padding: "20px"
-      }}
-    >
-
-      <h1>👤 My Profile</h1>
-
-      {/* PROFILE CARD */}
-      <div
-        style={{
-          border: "1px solid #ddd",
-          padding: "25px",
-          borderRadius: "12px",
-          backgroundColor: "#f9f9f9",
-          boxShadow: "0 4px 12px rgba(0,0,0,0.08)"
-        }}
-      >
-
-        {/* BASIC INFO */}
-
-        <p>
-          <strong>Name:</strong> {user.name}
-        </p>
-
-        <p>
-          <strong>Email:</strong> {user.email}
-        </p>
-
-        <p>
-          <strong>Role:</strong> {user.role}
-        </p>
-
-        {/* BIO */}
-
-        <h3 style={{ marginTop: "25px" }}>
-          📝 Bio
-        </h3>
-
-        <textarea
-          placeholder="Write about yourself..."
-          value={bio}
-          onChange={(e) => setBio(e.target.value)}
+        {/* Profile Card */}
+        <div
           style={{
-            width: "100%",
-            minHeight: "100px",
-            padding: "12px",
+            backgroundColor: "white",
+            padding: "30px",
             borderRadius: "8px",
-            border: "1px solid #ccc"
+            boxShadow: "0 2px 8px rgba(0,0,0,0.1)",
+            marginBottom: "20px"
           }}
-        />
-
-        {/* SKILLS */}
-
-        <h3 style={{ marginTop: "20px" }}>
-          🛠 Skills
-        </h3>
-
-        <input
-          type="text"
-          placeholder="React, Node, MongoDB"
-          value={skills}
-          onChange={(e) => setSkills(e.target.value)}
-          style={inputStyle}
-        />
-
-        {/* PORTFOLIO */}
-
-        <h3 style={{ marginTop: "20px" }}>
-          🌐 Portfolio Links
-        </h3>
-
-        <input
-          type="text"
-          placeholder="Github, Linkedin, Portfolio URL"
-          value={portfolio}
-          onChange={(e) => setPortfolio(e.target.value)}
-          style={inputStyle}
-        />
-
-        {/* UPDATE PROFILE BTN */}
-
-        <button
-          onClick={handleProfileUpdate}
-          style={blueBtn}
         >
-          💾 Save Profile
-        </button>
+          <h2 style={{ marginBottom: "20px" }}>{user.name}</h2>
 
-        {/* PASSWORD SECTION */}
+          <div style={{ fontSize: "16px", marginBottom: "10px" }}>
+            <p>
+              <strong>📧 Email:</strong> {user.email}
+            </p>
+            <p>
+              <strong>👤 Role:</strong> {user.role}
+            </p>
+            <p>
+              <strong>⭐ Member Since:</strong> {new Date(user.createdAt).toLocaleDateString()}
+            </p>
+          </div>
+        </div>
 
-        <h2 style={{ marginTop: "35px" }}>
-          🔒 Change Password
-        </h2>
-
-        <input
-          type="password"
-          placeholder="Old Password"
-          value={oldPassword}
-          onChange={(e) =>
-            setOldPassword(e.target.value)
-          }
-          style={inputStyle}
-        />
-
-        <input
-          type="password"
-          placeholder="New Password"
-          value={newPassword}
-          onChange={(e) =>
-            setNewPassword(e.target.value)
-          }
-          style={inputStyle}
-        />
-
-        <button
-          onClick={handlePasswordUpdate}
-          style={greenBtn}
+        {/* Stats */}
+        <div
+          style={{
+            display: "grid",
+            gridTemplateColumns: "1fr 1fr",
+            gap: "15px",
+            marginBottom: "20px"
+          }}
         >
-          🔑 Update Password
-        </button>
+          <div
+            style={{
+              backgroundColor: "white",
+              padding: "20px",
+              borderRadius: "8px",
+              textAlign: "center",
+              boxShadow: "0 2px 8px rgba(0,0,0,0.1)"
+            }}
+          >
+            <p style={{ color: "#666" }}>Payments Made</p>
+            <h3 style={{ color: "#007bff" }}>{stats.paymentsMade}</h3>
+          </div>
 
-        {/* LOGOUT */}
-
-        <button
-          onClick={handleLogout}
-          style={logoutBtn}
-        >
-          🚪 Logout
-        </button>
-
+          <div
+            style={{
+              backgroundColor: "white",
+              padding: "20px",
+              borderRadius: "8px",
+              textAlign: "center",
+              boxShadow: "0 2px 8px rgba(0,0,0,0.1)"
+            }}
+          >
+            <p style={{ color: "#666" }}>Total Spent</p>
+            <h3 style={{ color: "#28a745" }}>₹{stats.totalSpent}</h3>
+          </div>
+        </div>
       </div>
     </div>
   );
-};
-
-// INPUT STYLE
-const inputStyle = {
-  width: "100%",
-  padding: "12px",
-  borderRadius: "8px",
-  border: "1px solid #ccc",
-  marginTop: "10px"
-};
-
-// BUTTONS
-const blueBtn = {
-  marginTop: "20px",
-  padding: "12px 20px",
-  backgroundColor: "#2563eb",
-  color: "white",
-  border: "none",
-  borderRadius: "8px",
-  cursor: "pointer",
-  width: "100%",
-  fontWeight: "bold"
-};
-
-const greenBtn = {
-  marginTop: "15px",
-  padding: "12px 20px",
-  backgroundColor: "#16a34a",
-  color: "white",
-  border: "none",
-  borderRadius: "8px",
-  cursor: "pointer",
-  width: "100%",
-  fontWeight: "bold"
-};
-
-const logoutBtn = {
-  marginTop: "20px",
-  padding: "12px 20px",
-  backgroundColor: "#dc2626",
-  color: "white",
-  border: "none",
-  borderRadius: "8px",
-  cursor: "pointer",
-  width: "100%",
-  fontWeight: "bold"
 };
 
 export default Profile;

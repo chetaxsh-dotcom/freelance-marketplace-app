@@ -20,7 +20,7 @@ router.post('/create', async (req, res) => {
       });
     }
 
-    // ✅ KEY FIX: Try to get userId, if not provided, use first user or create dummy
+    //  KEY FIX: Try to get userId, if not provided, use first user or create dummy
     let finalFreelancerId = userId || freelancerId;
 
     if (!finalFreelancerId) {

@@ -27,7 +27,7 @@ const Signup = () => {
 
       console.log('✅ Signup response:', res.data);
 
-      // ✅ SAVE TO LOCALSTORAGE
+      //  SAVE TO LOCALSTORAGE
       localStorage.setItem("token", res.data.token);
       localStorage.setItem("userId", res.data.user._id);
       localStorage.setItem("role", res.data.user.role);

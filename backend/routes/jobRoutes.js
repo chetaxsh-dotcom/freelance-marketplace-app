@@ -1,15 +1,39 @@
-import express from "express";
-import { createJob, getJobs, getJobById, addRating, addResponse, } from "../controllers/jobController.js";
-import authMiddleware from "../middleware/authMiddleware.js";
+import express from 'express';
+import {
+  createJob,
+  getAllJobs,
+  getJobById,
+  updateJob,
+  deleteJob,
+  searchJobs,
+  addProposal,
+  addRating
+} from '../controllers/jobController.js';
 
 const router = express.Router();
 
-router.post("/", createJob);
-router.get("/", getJobs);
-router.get("/:jobId", getJobById);
+// POST JOB
+router.post('/', createJob);
 
-// protected route
-router.post("/:jobId/rate",authMiddleware, addRating);
-router.post("/:jobId/respond/:ratingId", addResponse);
+// GET ALL JOBS
+router.get('/', getAllJobs);
+
+// SEARCH JOBS
+router.get('/search', searchJobs);
+
+// GET SINGLE JOB
+router.get('/:id', getJobById);
+
+// UPDATE JOB
+router.patch('/:id', updateJob);
+
+// DELETE JOB
+router.delete('/:id', deleteJob);
+
+// ADD PROPOSAL
+router.post('/:id/proposals', addProposal);
+
+// ADD RATING
+router.post('/:id/ratings', addRating);
 
 export default router;

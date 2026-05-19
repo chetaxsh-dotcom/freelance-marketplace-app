@@ -2,29 +2,41 @@ import mongoose from 'mongoose';
 
 const paymentSchema = new mongoose.Schema(
   {
-    orderId: String,
+    orderId: {
+      type: String,
+      required: true,
+      unique: true
+    },
     jobId: {
       type: mongoose.Schema.Types.ObjectId,
-      ref: 'Job'
+      ref: 'Service',
+      required: true
     },
     freelancerId: {
       type: mongoose.Schema.Types.ObjectId,
-      ref: 'User'
+      ref: 'User',
+      required: true
     },
     clientId: {
       type: mongoose.Schema.Types.ObjectId,
-      ref: 'User'
+      ref: 'User',
+      required: true
     },
-    amount: Number,
+    amount: {
+      type: Number,
+      required: true
+    },
+    currency: {
+      type: String,
+      default: 'INR'
+    },
     status: {
       type: String,
-      enum: ['pending', 'completed', 'failed', 'refunded'],
+      enum: ['pending', 'completed', 'failed'],
       default: 'pending'
     },
-    razorpayOrderId: String,
-    razorpayPaymentId: String,
-    razorpaySignature: String,
-    refundId: String,
+    paymentId: String,
+    signature: String,
     description: String,
     completedAt: Date
   },

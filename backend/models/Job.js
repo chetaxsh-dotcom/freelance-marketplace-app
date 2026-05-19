@@ -23,6 +23,8 @@ const jobSchema = new mongoose.Schema(
       type: String,
       required: false
     },
+    skills: [String],  // ← ADD THIS
+    location: String,  // ← ADD THIS
     status: {
       type: String,
       enum: ['open', 'assigned', 'in-progress', 'completed', 'cancelled'],
@@ -30,7 +32,8 @@ const jobSchema = new mongoose.Schema(
     },
     postedBy: {
       type: mongoose.Schema.Types.ObjectId,
-      ref: 'User'
+      ref: 'User',
+      required: true
     },
     assignedTo: {
       type: mongoose.Schema.Types.ObjectId,
@@ -44,19 +47,47 @@ const jobSchema = new mongoose.Schema(
       }
     ],
     ratings: [
-    {
-      userId: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
-      value: { type: Number, min: 1, max: 5 },
-      review: String,
-      response: String
-    }
-  ],
-
-  averageRating: {
-    type: Number,
-    default: 0
-  }
-
+      {
+        userId: { 
+          type: mongoose.Schema.Types.ObjectId, 
+          ref: "User" 
+        },
+        value: { 
+          type: Number, 
+          min: 1, 
+          max: 5 
+        },
+        review: String,
+        response: String,
+        createdAt: {
+          type: Date,
+          default: Date.now
+        }
+      }
+    ],
+    averageRating: {
+      type: Number,
+      default: 0
+    },
+    proposals: [
+      {
+        freelancerId: {
+          type: mongoose.Schema.Types.ObjectId,
+          ref: 'User'
+        },
+        proposalText: String,
+        bidAmount: Number,
+        status: {
+          type: String,
+          enum: ['pending', 'accepted', 'rejected'],
+          default: 'pending'
+        },
+        createdAt: {
+          type: Date,
+          default: Date.now
+        }
+      }
+    ]
   },
   { timestamps: true }
 );

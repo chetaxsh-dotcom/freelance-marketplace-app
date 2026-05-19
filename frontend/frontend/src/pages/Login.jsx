@@ -20,13 +20,13 @@ const Login = () => {
 
       console.log('✅ Login response:', res.data);
 
-      // ✅ SAVE TO LOCALSTORAGE
+      //  SAVE TO LOCALSTORAGE
       localStorage.setItem("token", res.data.token);
       localStorage.setItem("userId", res.data.user._id);
       localStorage.setItem("role", res.data.user.role);
       localStorage.setItem("user", JSON.stringify(res.data.user));
 
-      // ✅ VERIFY SAVED
+      //  VERIFY SAVED
       console.log('📦 Saved to localStorage:', {
         token: localStorage.getItem("token"),
         userId: localStorage.getItem("userId"),
